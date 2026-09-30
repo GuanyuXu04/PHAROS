@@ -10,3 +10,7 @@ firmware/Debug/
 *.o
 *.su
 *.cyclo
+
+# ST-provided libraries: regenerate from firmware/Optical_Tomography.ioc with STM32CubeIDE
+firmware/Drivers/CMSIS/
+firmware/Drivers/STM32L4xx_HAL_Driver/

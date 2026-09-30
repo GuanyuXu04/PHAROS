@@ -143,6 +143,12 @@ Under the fastest mode, the ADC produces one data every 37 μs.
 
 ---
 
+---
+
+## Building
+
+The ST-provided libraries (`Drivers/CMSIS` and `Drivers/STM32L4xx_HAL_Driver`) are not part of this repository. To build, open `Optical_Tomography.ioc` in STM32CubeIDE and let it generate them (Project > Generate Code), or copy them from the STM32CubeL4 package. The application code is in `Core/` and the AD717x driver is in `Drivers/AD717x/`.
+
 
 ## References
 
