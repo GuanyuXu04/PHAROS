@@ -1,0 +1,12 @@
+data/
+*.egg-info/
+__pycache__/
+*.pyc
+checkpoints/
+.codex
+.vscode/
+
+firmware/Debug/
+*.o
+*.su
+*.cyclo

@@ -1,0 +1,77 @@
+# Pharos configuration for the indentation dataset (data/indentation).
+#
+# Build the two caches referenced under `data` first (see README.md):
+#   python tools/build_train_cache.py --npz "data/indentation/white_train_S*.npz" \
+#       --out data/indentation/cache/train_stride3 --stride 3
+#   python tools/build_train_cache.py --npz "data/indentation/white_test_*.npz" \
+#       --out data/indentation/cache/test_stride3 --stride 3
+
+seed: 42
+
+data:
+  cache_dir: data/indentation/cache/train_stride3       # training / validation frames
+  test_cache_dir: data/indentation/cache/test_stride3   # held-out indenter shapes
+  stride: 3                # depth sub-sampling stride; must match the one used to build the caches
+  split_mode: per_session  # per_session | contiguous
+  train_split: 0.9         # fraction of every session (or of the whole set) used for training
+  max_frame_id: null       # drop frames with id >= this value (null keeps everything)
+  sessions: null           # restrict the training cache to these session names (null = all)
+
+model:
+  optical_dim: 180   # 30 LEDs x 6 photodiodes
+  latent_dim: 512
+  num_points: 4096   # 1024, 2048, 4096 or 8192 (plus any remainder, see ShapeDecoder)
+  tnet1: false
+  tnet2: false
+
+# Stage 1: point-cloud autoencoder (scripts/train_AE.py)
+train_ae:
+  batch_size: 16
+  num_workers: 4
+  max_steps: 100000
+  eval_every_steps: 2000
+  log_every_steps: 100
+  early_stop_patience: 10      # evaluations without improvement before stopping
+  eval_max_batches: 50         # validation frames per evaluation = eval_max_batches * batch_size
+  bn_recompute_batches: 50     # training batches used to re-estimate BatchNorm statistics
+
+  lr_schedule: cosine          # cosine | plateau
+  base_lr: 1.0e-3
+  min_lr: 1.0e-5
+  warmup_steps: 500
+  scheduler:                   # ReduceLROnPlateau, only used when lr_schedule is plateau
+    factor: 0.5
+    patience: 3
+
+  bn_init_decay: 0.5           # BatchNorm momentum schedule: init * rate^(samples / step), floored
+  bn_decay_rate: 0.5
+  bn_decay_step: 200000
+  bn_momentum_min: 0.01
+
+  loss:
+    repulsion_weight: 0.0      # coefficient of the repulsion term; 0 disables it
+    repulsion_k: 10
+    repulsion_h: 0.5
+    repulsion_subset: 2048     # points used by the repulsion term (null = all)
+
+  gpus: 1                      # number of GPUs, or "auto" to use every visible one
+  min_free_gpu_mem_gib: 20     # only used when gpus is "auto"
+
+# Stage 2: photodiode readings -> latent code (scripts/train_optical.py)
+train_optical:
+  batch_size: 256
+  num_workers: 4               # only used by the Chamfer loss modes
+  epochs: 100
+  early_stop_patience: 15
+  optimizer: adam              # adam | sgd
+  lr: 1.0e-3
+  input: norm                  # norm (min-max normalised readings) | raw
+  ae_run_name: null            # load the autoencoder from another run (null = same run)
+  loss:
+    mode: mse                  # mse | mse_cd | cd
+    lambda_cd: 1.0e-4          # weight of the Chamfer term in mse_cd
+    cd_chunk: 512
+
+output:
+  base_dir: checkpoints
+  run_name: indentation
