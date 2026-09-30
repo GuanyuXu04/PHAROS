@@ -1,11 +1,11 @@
 # Pharos
 
-Pharos reconstructs the 3D shape of a soft optical waveguide membrane from photodiode readings alone. A 30-LED x 6-photodiode waveguide sensor produces 180 light-transmission channels per frame; a neural network maps them to a dense point cloud of the deformed surface (4096 points by default), so the membrane can be tracked without any camera at inference time.
+Pharos reconstructs the 3D shape of a soft optical waveguide membrane from photodiode readings alone.
 
 The reconstruction uses two stages:
 
 1. **Point-cloud autoencoder** (`scripts/train_AE.py`): learns a latent code for membrane shapes from depth-camera point clouds.
-2. **Photodiode-to-latent regressor** (`scripts/train_optical.py`): maps the 180 optical channels to that latent code. The frozen autoencoder decoder then turns the predicted code into a point cloud.
+2. **Photodiode-to-latent regressor** (`scripts/train_optical.py`): maps the optical channels to that latent code. The frozen autoencoder decoder then turns the predicted code into a point cloud.
 
 This repository contains the model and training code, the data tooling, the real-time inference tools, and the sensor firmware (`firmware/`).
 
@@ -22,7 +22,7 @@ data/         Datasets, downloaded separately from Hugging Face (see "Data")
 
 ## Installation
 
-Python 3.9 or newer and a CUDA-capable GPU are recommended (CPU works but is slow).
+Python 3.9 or newer and a CUDA-capable GPU are recommended.
 
 ```bash
 git clone https://github.com/GuanyuXu04/PHAROS.git
@@ -61,8 +61,6 @@ data/indentation/
   white_test_Circle.npz, _Finger, _Square, _Triangle, _U.npz    held-out indenter shapes
 ```
 
-Each archive holds the depth frames (`depth`), the raw optical rows (`optical`, 218 columns: timestamp plus `(30 + 1) x (6 + 1)` LED/photodiode readings), the camera intrinsics and per-frame metadata. The test sessions use indenter shapes that never appear in training.
-
 `bending/` and `stretch/` hold additional recordings that the scripts in this repository do not read. `bending/` contains one CSV log per recording (`TIME`, `EXT` and the photodiode readings of LEDs 1 to 3), named after the bending angle and whether the LEDs were on (`haslight`) or off (`nolight`). `stretch/` contains a single archive, `stretch.npz`, with the arrays `depth`, `optical`, `depth_frames` and `optical_frames` (the last two give the frame number of every row).
 
 Build the memory-mappable caches once (about 4 GB for the training set):
@@ -90,9 +88,6 @@ python scripts/train_optical.py
 
 `train_AE.py` resumes automatically from `checkpoints/<run>/checkpoints/last.pth`. `train_optical.py` writes the final model to `checkpoints/<run>/best_combined.pth`; that file also records the input normalisation constants, which every evaluation and inference script applies automatically.
 
-Useful options of `train_optical.py`: `--loss-mode {mse,mse_cd,cd}`, `--lambda-cd`, `--epochs`, `--ae-run-name`, `--device`.
-
-Multi-GPU training of the autoencoder is supported through `torchrun` (Linux) or by setting `train_ae.gpus: auto`.
 
 ## Evaluation
 
