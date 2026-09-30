@@ -54,7 +54,7 @@ def build_eval_set(cfg, split: str):
     data_cfg = cfg["data"]
 
     if split == "test":
-        # A separate cache of held-out shapes (Circle, Poke, Square, Triangle,
+        # A separate cache of held-out shapes (Circle, Finger, Square, Triangle,
         # U), not a slice of the training sessions.
         dataset = make_dataset(data_cfg, cache_dir=data_cfg["test_cache_dir"])
         positions = np.arange(len(dataset))

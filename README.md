@@ -12,12 +12,12 @@ This repository contains the model and training code, the data tooling, the real
 ## Repository layout
 
 ```
-pharos/       Python package: model, datasets, losses, metrics, plotting
+pharos/       Model, datasets, losses, metrics, plotting
 scripts/      Training and evaluation entry points
 tools/        Cache builder, real-time inference / video rendering, data acquisition
 config/       config.yaml, the single configuration file used by all scripts
 firmware/     STM32 (NUCLEO-L432KC) firmware for LED multiplexing and photodiode readout
-data/         Datasets (not tracked by git, see "Data")
+data/         Datasets, downloaded separately from Hugging Face (see "Data")
 ```
 
 ## Installation
@@ -25,8 +25,8 @@ data/         Datasets (not tracked by git, see "Data")
 Python 3.9 or newer and a CUDA-capable GPU are recommended (CPU works but is slow).
 
 ```bash
-git clone <repository-url>
-cd Pharos
+git clone https://github.com/GuanyuXu04/PHAROS.git
+cd PHAROS
 
 # Install PyTorch for your platform first: https://pytorch.org/get-started/locally/
 pip install -e .
@@ -40,15 +40,24 @@ pip install -e ".[hardware]"
 
 ## Data
 
-The indentation dataset is distributed as packed session archives. Place them in `data/indentation/`:
+The datasets are hosted on Hugging Face: [xuguanyu04/PHAROS-data](https://huggingface.co/datasets/xuguanyu04/PHAROS-data). It contains three folders, `indentation/`, `bending/` and `stretch/`. Download everything into `data/`:
+
+```bash
+pip install -U huggingface_hub
+hf download xuguanyu04/PHAROS-data --repo-type dataset --local-dir data
+```
+
+The training and evaluation scripts use the indentation data, which is distributed as packed session archives in `data/indentation/`:
 
 ```
 data/indentation/
   white_train_S1.npz ... white_train_S7.npz    training sessions
-  white_test_Circle.npz, _Poke, _Square, _Triangle, _U.npz    held-out indenter shapes
+  white_test_Circle.npz, _Finger, _Square, _Triangle, _U.npz    held-out indenter shapes
 ```
 
 Each archive holds the depth frames (`depth`), the raw optical rows (`optical`, 218 columns: timestamp plus `(30 + 1) x (6 + 1)` LED/photodiode readings), the camera intrinsics and per-frame metadata. The test sessions use indenter shapes that never appear in training.
+
+`bending/` and `stretch/` hold additional recordings that the scripts in this repository do not read. `bending/` contains one CSV log per recording (`TIME`, `EXT` and the photodiode readings of LEDs 1 to 3), named after the bending angle and whether the LEDs were on (`haslight`) or off (`nolight`). `stretch/` contains a single archive, `stretch.npz`, with the arrays `depth`, `optical`, `depth_frames` and `optical_frames` (the last two give the frame number of every row).
 
 Build the memory-mappable caches once (about 4 GB for the training set):
 
@@ -118,10 +127,24 @@ The scripts in `tools/` need the optional `hardware` dependencies and the sensor
 | `tools/interface.py` | Live 3D (or contour) visualisation of the predicted shape from the serial stream |
 | `tools/d2v.py` | Render recorded optical frames as a point-cloud video |
 | `tools/collect_data.py` | Record synchronised optical and RealSense depth frames |
+| `tools/pack_session.py` | Pack a `collect_data.py` session into the `.npz` format used for training |
 | `tools/collect_optical.py` | Record optical frames only |
 
-`interface.py` and `d2v.py` load `best_combined.pth` from the working directory and build the network with the values hard-coded at the top of the file (`latent_dim=512`, `num_points=4096`); keep them in sync with `config/config.yaml`. Set the serial port (`PORT` / `SERIAL_PORT`) at the top of each script.
+`interface.py` and `d2v.py` load `best_combined.pth` from the working directory and read the network architecture (latent size, number of points) from the checkpoint, so nothing needs to be kept in sync by hand. Set the serial port (`PORT` / `SERIAL_PORT`) at the top of each script.
+
+### Training on your own recordings
+
+`collect_data.py` saves one depth file and one optical file per frame, plus a `meta.npz` with the camera settings. The training pipeline expects the packed format of the released dataset, so convert each recorded session before building a cache:
+
+```bash
+python tools/collect_data.py        # records into data/<SESSION_NAME>/
+python tools/pack_session.py data/<SESSION_NAME> --out data/mine/my_session.npz
+python tools/build_train_cache.py --npz "data/mine/my_session.npz" \
+    --out data/mine/cache/train_stride3 --stride 3
+```
+
+Then point `data.cache_dir` in `config/config.yaml` at the new cache. A held-out test cache is built the same way from separate sessions. Frames with a missing or malformed file are skipped and reported, and `frame_ids` are renumbered from 0 within each archive.
 
 ## Firmware
 
-The sensor firmware, previously published as [Optical_Tomography](https://github.com/XuGuaaaanyu/Optical_Tomography), now lives in [`firmware/`](firmware/). It targets a NUCLEO-L432KC board that reads the ADPD2211 photodiodes through an AD7175-8 ADC and time-multiplexes the SK9822 LEDs. See [`firmware/README.md`](firmware/README.md) for the hardware overview, peripheral configuration and build notes.
+The sensor firmware lives in [`firmware/`](firmware/). It targets a NUCLEO-L432KC board that reads the ADPD2211 photodiodes through an AD7175-8 ADC and time-multiplexes the SK9822 LEDs. See [`firmware/README.md`](firmware/README.md) for the hardware overview, peripheral configuration and build notes.

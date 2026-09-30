@@ -19,7 +19,7 @@ data:
 
 model:
   optical_dim: 180   # 30 LEDs x 6 photodiodes
-  latent_dim: 512
+  latent_dim: 256
   num_points: 4096   # 1024, 2048, 4096 or 8192 (plus any remainder, see ShapeDecoder)
   tnet1: false
   tnet2: false

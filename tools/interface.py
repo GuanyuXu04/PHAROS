@@ -27,11 +27,14 @@ COLUMNS = np.concatenate([np.arange(9 + 7 * i, 15 + 7 * i) for i in range(30)])
 CONTOUR = False
 
 # ---------------- Model -----------------
-model = ShapeNet(
-    pd_in_features=180, latent_dim=512, num_points=4096,  # must match the model section of config/config.yaml
-    tnet1=False, tnet2=False
-).to(DEVICE).eval()
 ckpt = torch.load(MODEL_PATH, map_location=DEVICE)
+# The architecture is read from the checkpoint; the fallbacks are the paper defaults.
+model = ShapeNet(
+    pd_in_features=ckpt.get("optical_dim", 180),
+    latent_dim=ckpt.get("latent_dim", 256),
+    num_points=ckpt.get("num_points", 4096),
+    tnet1=ckpt.get("tnet1", False), tnet2=ckpt.get("tnet2", False),
+).to(DEVICE).eval()
 model.pd2latent.load_state_dict(ckpt["pd2latent_state_dict"])
 model.decoder.load_state_dict(ckpt["decoder_state_dict"])
 # Reproduce the input normalisation the model was trained with (stored in the checkpoint).

@@ -1,28 +1,3 @@
-"""Evaluate a trained ShapeNet on independently collected test sessions.
-
-Each session of the test cache is one acquisition (one indenter, one
-location, one depth) and is scored separately, because the frames inside a
-session are repeated measurements of the same configuration and are therefore
-not independent samples. Reported per session:
-
-  * frame counts (files found, valid after the bounding-box filter)
-  * deformation magnitude dz = z_max - z_min of the ground-truth cloud
-  * symmetric Chamfer distance d_CD (Equation 2 of the manuscript), which is
-    the SUM of the two one-sided mean nearest-neighbour distances; both
-    one-sided means are reported separately so the scale is unambiguous
-  * max nearest-neighbour distance (nnd_max), as annotated in Figure 7C
-  * F-score at the requested thresholds
-
-Outputs, under {base_dir}/{run_name}/eval_sessions/:
-  per_frame_{session}.csv    one row per frame
-  summary.csv / summary.md   one row per session plus a pooled row
-  samples/{session}_{tag}.npz  best / median / worst frames for figures
-
-Usage:
-  python scripts/evaluate_sessions.py --run-name indentation
-  python scripts/evaluate_sessions.py --run-name indentation \
-      --sessions white_test_U white_test_Circle --save-samples
-"""
 import os
 import csv
 import json
