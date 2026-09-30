@@ -40,11 +40,17 @@ pip install -e ".[hardware]"
 
 ## Data
 
-The datasets are hosted on Hugging Face: [xuguanyu04/PHAROS-data](https://huggingface.co/datasets/xuguanyu04/PHAROS-data). It contains three folders, `indentation/`, `bending/` and `stretch/`. Download everything into `data/`:
+The datasets are hosted on Hugging Face: [xuguanyu04/PHAROS-data](https://huggingface.co/datasets/xuguanyu04/PHAROS-data). It contains the datasets (`indentation/`, `bending/` and `stretch/`) and the trained model (`checkpoints/`). Download the datasets into `data/`:
 
 ```bash
 pip install -U huggingface_hub
-hf download xuguanyu04/PHAROS-data --repo-type dataset --local-dir data
+hf download xuguanyu04/PHAROS-data --repo-type dataset --exclude "checkpoints/*" --local-dir data
+```
+
+The trained model used in the paper is in the same repository. Download it into the repository root, where it lands in `checkpoints/final-run/`:
+
+```bash
+hf download xuguanyu04/PHAROS-data --repo-type dataset --include "checkpoints/*" --local-dir .
 ```
 
 The training and evaluation scripts use the indentation data, which is distributed as packed session archives in `data/indentation/`:
@@ -89,6 +95,8 @@ Useful options of `train_optical.py`: `--loss-mode {mse,mse_cd,cd}`, `--lambda-c
 Multi-GPU training of the autoencoder is supported through `torchrun` (Linux) or by setting `train_ae.gpus: auto`.
 
 ## Evaluation
+
+The commands below use `output.run_name` from the config. To evaluate the downloaded model, add `--run-name final-run` to each of them.
 
 ```bash
 # Full pipeline (photodiodes -> point cloud) on the held-out test sessions:
