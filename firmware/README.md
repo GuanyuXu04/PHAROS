@@ -135,12 +135,6 @@ HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
 4. After collecting one full LED frame, disable `RDY` interrupt, update LED pattern
 5. Stream data to PC via USART2 DMA. Re‑enable EXTI when the bus is free.
 
-The waveform on a logic analyzer looks like the following:
-<img width="1010" height="416" alt="image" src="https://github.com/user-attachments/assets/156682a9-f74d-4d37-ae61-a740db44b862" />
-<img width="838" height="421" alt="image" src="https://github.com/user-attachments/assets/9dd20722-48b6-4acd-addf-886a02c8eb0b" />
-
-Under the fastest mode, the ADC produces one data every 37 μs. 
-
 ---
 
 ---
